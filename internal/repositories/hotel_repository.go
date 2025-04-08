@@ -53,7 +53,7 @@ func (r *PostgresHotelRepository) FindByID(ctx context.Context, id int64) (*data
 	
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil // Hotel not found
+			return nil, nil 
 		}
 		return nil, err
 	}

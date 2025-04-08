@@ -1,4 +1,3 @@
-// internal/data/models.go
 package data
 
 import (
@@ -8,7 +7,7 @@ import (
 type User struct {
 	ID        int64     `json:"id"`
 	Email     string    `json:"email"`
-	Password  string    `json:"-"` // Don't expose password in JSON responses
+	Password  string    `json:"-"` 
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -34,10 +33,9 @@ type Booking struct {
 	FromDate  time.Time `json:"from_date"`
 	ToDate    time.Time `json:"to_date"`
 	CreatedAt time.Time `json:"created_at"`
-	Status    string    `json:"status"` // active, cancelled
+	Status    string    `json:"status"`
 }
 
-// Request/Response structures
 
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
