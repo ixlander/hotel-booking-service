@@ -20,17 +20,17 @@ func SetupRouter(store *store.Store, jwtSecret string, jwtTTL int) *gin.Engine {
 	bookingController := http.NewBookingController(bookingUsecase)
 	
 	router.POST("/register", authController.Register())
-	router.POST("/login", authController.Login())
+	router.POST("/login", authController.Login())     
 	
-	router.GET("/hotels", hotelController.GetAllHotels())
-	router.GET("/hotels/:id", hotelController.GetHotelWithRooms())
-	router.GET("/hotels/:id/available-rooms", hotelController.GetAvailableRooms())
+	router.GET("/hotels", hotelController.GetAllHotels())           
+	router.GET("/hotels/:id", hotelController.GetHotelWithRooms())   
+	router.GET("/hotels/:id/available-rooms", hotelController.GetAvailableRooms()) 
 	
 	authorized := router.Group("/")
 	authorized.Use(authController.AuthMiddleware())
 	{
-		authorized.POST("/bookings", bookingController.CreateBooking())
-		authorized.GET("/bookings", bookingController.GetUserBookings())
+		authorized.POST("/bookings", bookingController.CreateBooking())   
+		authorized.GET("/bookings", bookingController.GetUserBookings()) 
 		authorized.DELETE("/bookings/:id", bookingController.CancelBooking())
 	}
 	
