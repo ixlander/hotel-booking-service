@@ -1,0 +1,26 @@
+@startuml sequenceDiagram
+skin rose
+participant "User" as U
+participant "BookingController" as BC
+participant "BookingUsecase" as BU
+participant "RoomRepository" as RR
+participant "BookingRepository" as BR
+database "Postgres" as DB
+autonumber
+U->>BC: POST /bookings\n{room_id, from_date, to_date}
+BC->>BU: CreateBooking(userID, roomID, from, to)
+BU->>RR: CheckRoomAvailability(roomID, from, to)
+RR-->>BU: Room available
+alt Room available
+  BU->>BR: CreateBooking(userID, roomID, from, to)
+  BR->>DB: INSERT INTO bookings (user_id, room_id, from_date, to_date)
+  DB-->>BR: Booking created
+  BR-->>BU: Booking details
+  BU-->>BC: Success (200 OK)
+  BC-->>U: Booking confirmed
+else Room not available
+  RR-->>BU: Room not available
+  BU-->>BC: Error (409 Conflict)
+  BC-->>U: Room is not available
+end
+@enduml

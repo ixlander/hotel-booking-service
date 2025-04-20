@@ -1,0 +1,27 @@
+@startuml sequenceDiagram
+skin rose
+participant "User" as U
+participant "AuthController" as AC
+participant "AuthUsecase" as AU
+participant "UserRepository" as UR
+database "Postgres" as DB
+autonumber
+U->>AC: POST /login\n{email, password}
+AC->>AU: Login(email, password)
+AU->>UR: FindByEmail(email)
+UR-->>AU: User found
+alt User found
+  AU->>AU: VerifyPassword(stored_password, provided_password)
+  alt Password valid
+    AU->>AC: GenerateJWT(userID)
+    AC-->>U: JWT token
+  else Password invalid
+    AU-->>AC: Invalid credentials
+    AC-->>U: Error (401 Unauthorized)
+  end
+else User not found
+  UR-->>AU: User not found
+  AU-->>AC: User not found
+  AC-->>U: Error (404 Not Found)
+end
+@enduml
