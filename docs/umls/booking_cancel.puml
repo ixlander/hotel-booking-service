@@ -1,0 +1,30 @@
+@startuml sequenceDiagram
+skin rose
+participant "User" as U
+participant "BookingController" as BC
+participant "BookingUsecase" as BU
+participant "BookingRepository" as BR
+database "Postgres" as DB
+autonumber
+U->>BC: DELETE /bookings/{booking_id}
+BC->>BU: CancelBooking(userID, bookingID)
+BU->>BR: GetBooking(bookingID)
+BR-->>BU: Booking details
+alt Booking found
+  alt Booking belongs to user
+    BU->>BR: UpdateBookingStatus(bookingID, 'cancelled')
+    BR->>DB: UPDATE bookings SET status='cancelled', cancelled_at=NOW() WHERE id=bookingID
+    DB-->>BR: Booking cancelled
+    BR-->>BU: Booking cancelled
+    BU-->>BC: Success (200 OK)
+    BC-->>U: Booking cancelled
+  else Booking doesn't belong to user
+    BU-->>BC: Error (403 Forbidden)
+    BC-->>U: Error (403 Forbidden)
+  end
+else Booking not found
+  BR-->>BU: Booking not found
+  BU-->>BC: Error (404 Not Found)
+  BC-->>U: Error (404 Not Found)
+end
+@enduml

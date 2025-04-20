@@ -1,0 +1,18 @@
+@startuml sequenceDiagram
+skin rose
+participant "User" as U
+participant "HotelController" as HC
+participant "HotelUsecase" as HU
+participant "HotelRepository" as HR
+participant "RoomRepository" as RR
+database "Postgres" as DB
+autonumber
+U->>HC: GET /hotels
+HC->>HU: GetAllHotels()
+HU->>HR: GetAllHotels()
+HR-->>HU: List of hotels
+HU->>RR: GetAvailableRooms(hotelID)
+RR-->>HU: List of available rooms for each hotel
+HU-->>HC: Hotels and rooms details
+HC-->>U: List of hotels and rooms
+@enduml
