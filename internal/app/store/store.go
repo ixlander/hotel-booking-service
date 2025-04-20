@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/ixlander/hotel-booking-service/internal/repositories"
+	"github.com/ixlander/hotel-booking-service/internal/repositories/postgres"
 )
 
 type Store struct {
@@ -15,9 +16,9 @@ type Store struct {
 
 func NewStore(db *sql.DB) *Store {
 	return &Store{
-		UserRepo:    repositories.NewPostgresUserRepository(db),
-		HotelRepo:   repositories.NewPostgresHotelRepository(db),
-		RoomRepo:    repositories.NewPostgresRoomRepository(db),
-		BookingRepo: repositories.NewPostgresBookingRepository(db),
+		UserRepo:    postgres.NewUserRepo(db),
+		HotelRepo:   postgres.NewHotelRepo(db),
+		RoomRepo:    postgres.NewRoomRepo(db),
+		BookingRepo: postgres.NewBookingRepo(db),
 	}
 }

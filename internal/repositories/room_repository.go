@@ -1,4 +1,4 @@
-package repositories
+package postgres
 
 import (
 	"context"
@@ -9,15 +9,15 @@ import (
 	"github.com/ixlander/hotel-booking-service/internal/data"
 )
 
-type PostgresRoomRepository struct {
+type RoomRepo struct {
 	db *sql.DB
 }
 
-func NewPostgresRoomRepository(db *sql.DB) *PostgresRoomRepository {
-	return &PostgresRoomRepository{db: db}
+func NewRoomRepo(db *sql.DB) *RoomRepo {
+	return &RoomRepo{db: db}
 }
 
-func (r *PostgresRoomRepository) GetByHotelID(ctx context.Context, hotelID int64) ([]data.Room, error) {
+func (r *RoomRepo) GetByHotelID(ctx context.Context, hotelID int64) ([]*data.Room, error) {
 	query := `SELECT id, hotel_id, number, capacity, price FROM rooms WHERE hotel_id = $1`
 	
 	rows, err := r.db.QueryContext(ctx, query, hotelID)
@@ -26,13 +26,13 @@ func (r *PostgresRoomRepository) GetByHotelID(ctx context.Context, hotelID int64
 	}
 	defer rows.Close()
 	
-	var rooms []data.Room
+	var rooms []*data.Room
 	for rows.Next() {
 		var room data.Room
 		if err := rows.Scan(&room.ID, &room.HotelID, &room.Number, &room.Capacity, &room.Price); err != nil {
 			return nil, err
 		}
-		rooms = append(rooms, room)
+		rooms = append(rooms, &room)
 	}
 	
 	if err := rows.Err(); err != nil {
@@ -42,21 +42,16 @@ func (r *PostgresRoomRepository) GetByHotelID(ctx context.Context, hotelID int64
 	return rooms, nil
 }
 
-func (r *PostgresRoomRepository) FindByID(ctx context.Context, id int64) (*data.Room, error) {
+func (r *RoomRepo) FindByID(ctx context.Context, id int64) (*data.Room, error) {
 	query := `SELECT id, hotel_id, number, capacity, price FROM rooms WHERE id = $1`
 	
 	var room data.Room
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&room.ID,
-		&room.HotelID,
-		&room.Number,
-		&room.Capacity,
-		&room.Price,
-	)
+	err := r.db.QueryRowContext(ctx, query, id).
+		Scan(&room.ID, &room.HotelID, &room.Number, &room.Capacity, &room.Price)
 	
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil // Room not found
+			return nil, nil 
 		}
 		return nil, err
 	}
@@ -64,12 +59,10 @@ func (r *PostgresRoomRepository) FindByID(ctx context.Context, id int64) (*data.
 	return &room, nil
 }
 
-func (r *PostgresRoomRepository) CheckAvailability(ctx context.Context, roomID int64, fromDate, toDate time.Time) (bool, error) {
+func (r *RoomRepo) CheckAvailability(ctx context.Context, roomID int64, fromDate, toDate time.Time) (bool, error) {
 	query := `
-		SELECT COUNT(*)
-		FROM bookings
-		WHERE room_id = $1
-		AND status = 'active'
+		SELECT COUNT(*) FROM bookings 
+		WHERE room_id = $1 AND status != 'cancelled'
 		AND (
 			(from_date <= $2 AND to_date >= $2) OR
 			(from_date <= $3 AND to_date >= $3) OR
@@ -86,16 +79,14 @@ func (r *PostgresRoomRepository) CheckAvailability(ctx context.Context, roomID i
 	return count == 0, nil
 }
 
-func (r *PostgresRoomRepository) GetAvailableRooms(ctx context.Context, hotelID int64, fromDate, toDate time.Time) ([]data.Room, error) {
+func (r *RoomRepo) GetAvailableRooms(ctx context.Context, hotelID int64, fromDate, toDate time.Time) ([]*data.Room, error) {
 	query := `
 		SELECT r.id, r.hotel_id, r.number, r.capacity, r.price
 		FROM rooms r
 		WHERE r.hotel_id = $1
 		AND NOT EXISTS (
-			SELECT 1
-			FROM bookings b
-			WHERE b.room_id = r.id
-			AND b.status = 'active'
+			SELECT 1 FROM bookings b
+			WHERE b.room_id = r.id AND b.status != 'cancelled'
 			AND (
 				(b.from_date <= $2 AND b.to_date >= $2) OR
 				(b.from_date <= $3 AND b.to_date >= $3) OR
@@ -110,13 +101,13 @@ func (r *PostgresRoomRepository) GetAvailableRooms(ctx context.Context, hotelID 
 	}
 	defer rows.Close()
 	
-	var rooms []data.Room
+	var rooms []*data.Room
 	for rows.Next() {
 		var room data.Room
 		if err := rows.Scan(&room.ID, &room.HotelID, &room.Number, &room.Capacity, &room.Price); err != nil {
 			return nil, err
 		}
-		rooms = append(rooms, room)
+		rooms = append(rooms, &room)
 	}
 	
 	if err := rows.Err(); err != nil {

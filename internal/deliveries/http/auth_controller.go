@@ -1,116 +1,82 @@
 package http
 
 import (
+	"errors"
 	"net/http"
-	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/ixlander/hotel-booking-service/internal/data"
+	"github.com/ixlander/hotel-booking-service/internal/pkg/httputil"
 	"github.com/ixlander/hotel-booking-service/internal/usecases"
 )
 
 type AuthController struct {
 	authUsecase *usecases.AuthUsecase
+	validate    *validator.Validate
 }
 
 func NewAuthController(authUsecase *usecases.AuthUsecase) *AuthController {
 	return &AuthController{
 		authUsecase: authUsecase,
+		validate:    validator.New(),
 	}
 }
 
-func (c *AuthController) Register() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		var req struct {
-			Email    string `json:"email" binding:"required,email"`
-			Password string `json:"password" binding:"required,min=6"`
-		}
-
-		if err := ctx.ShouldBindJSON(&req); err != nil {
-			ctx.JSON(http.StatusBadRequest, data.ApiError{Error: err.Error()})
-			return
-		}
-
-		user, err := c.authUsecase.Register(ctx, req.Email, req.Password)
-		if err != nil {
-			status := http.StatusInternalServerError
-			if strings.Contains(err.Error(), "already exists") {
-				status = http.StatusConflict
-			}
-			ctx.JSON(status, data.ApiError{Error: err.Error()})
-			return
-		}
-
-		user.Password = ""
-
-		ctx.JSON(http.StatusCreated, user)
-	}
+func (c *AuthController) RegisterRoutes(r chi.Router) {
+	r.Post("/register", c.Register)
+	r.Post("/login", c.Login)
 }
 
-func (c *AuthController) Login() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		var req data.LoginRequest
+func (c *AuthController) Register(w http.ResponseWriter, r *http.Request) {
+	var req data.LoginRequest
 
-		if err := ctx.ShouldBindJSON(&req); err != nil {
-			ctx.JSON(http.StatusBadRequest, data.ApiError{Error: err.Error()})
-			return
-		}
-
-		token, user, err := c.authUsecase.Login(ctx, req.Email, req.Password)
-		if err != nil {
-			status := http.StatusInternalServerError
-
-			if err == usecases.ErrUserNotFound {
-				status = http.StatusNotFound
-			} else if err == usecases.ErrInvalidCredentials {
-				status = http.StatusUnauthorized
-			}
-
-			ctx.JSON(status, data.ApiError{Error: err.Error()})
-			return
-		}
-
-		user.Password = ""
-
-		ctx.JSON(http.StatusOK, data.LoginResponse{
-			Token: token,
-			User:  *user,
-		})
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
 	}
+
+	if err := c.validate.Struct(req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user, err := c.authUsecase.Register(r.Context(), req.Email, req.Password)
+	if err != nil {
+		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusCreated, user)
 }
 
-func (c *AuthController) AuthMiddleware() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		authHeader := ctx.GetHeader("Authorization")
-		if authHeader == "" {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, data.ApiError{Error: "missing authorization header"})
-			return
-		}
+func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
+	var req data.LoginRequest
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, data.ApiError{Error: "invalid authorization header format"})
-			return
-		}
-
-		claims, err := c.authUsecase.VerifyToken(parts[1])
-		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, data.ApiError{Error: "invalid token"})
-			return
-		}
-
-		ctx.Set("userID", claims.UserID)
-		ctx.Next()
-	}
-}
-
-func GetUserID(ctx *gin.Context) (int64, bool) {
-	userID, exists := ctx.Get("userID")
-	if !exists {
-		return 0, false
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
 	}
 
-	id, ok := userID.(int64)
-	return id, ok
+	if err := c.validate.Struct(req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response, err := c.authUsecase.Login(r.Context(), req.Email, req.Password)
+	if err != nil {
+		if errors.Is(err, usecases.ErrUserNotFound) {
+			httputil.WriteError(w, http.StatusNotFound, "user not found")
+			return
+		}
+		if errors.Is(err, usecases.ErrInvalidCredentials) {
+			httputil.WriteError(w, http.StatusUnauthorized, "invalid credentials")
+			return
+		}
+		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, response)
 }

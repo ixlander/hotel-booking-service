@@ -25,12 +25,6 @@ CREATE TABLE bookings (
     room_id INT REFERENCES rooms(id) ON DELETE CASCADE,
     from_date DATE NOT NULL,
     to_date DATE NOT NULL,
-    status VARCHAR(50) DEFAULT 'active' NOT NULL,
+    status VARCHAR(50) DEFAULT 'confirmed' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE INDEX idx_rooms_hotel_id ON rooms(hotel_id);
-CREATE INDEX idx_bookings_user_id ON bookings(user_id);
-CREATE INDEX idx_bookings_room_id ON bookings(room_id);
-CREATE INDEX idx_bookings_dates ON bookings(from_date, to_date);
-CREATE INDEX idx_users_email ON users(email);

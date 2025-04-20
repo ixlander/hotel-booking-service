@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/yourusername/hotel-booking-service/internal/data"
-	"github.com/yourusername/hotel-booking-service/internal/repositories"
+	"github.com/ixlander/hotel-booking-service/internal/data"
+	"github.com/ixlander/hotel-booking-service/internal/repositories"
 )
 
 var (
