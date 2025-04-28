@@ -83,3 +83,26 @@ func (r *UserRepository) GetByID(id int) (*data.User, error) {
 	
 	return &user, nil
 }
+
+func (r *UserRepository) GetAllUsers() ([]data.User, error) {
+	query := `SELECT id, email, created_at FROM users`
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []data.User
+	for rows.Next() {
+		var user data.User
+		if err := rows.Scan(&user.ID, &user.Email, &user.CreatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
+}

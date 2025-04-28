@@ -102,3 +102,33 @@ func (r *RoomRepository) GetAvailableRoomsByHotelID(hotelID int, fromDate, toDat
 	
 	return rooms, nil
 }
+
+// В репозитории RoomRepository
+func (r *RoomRepository) GetAllRooms() ([]data.Room, error) {
+	query := `SELECT id, hotel_id, number, capacity, price FROM rooms`
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []data.Room
+	for rows.Next() {
+		var room data.Room
+		if err := rows.Scan(&room.ID, &room.HotelID, &room.Number, &room.Capacity, &room.Price); err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, room)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return rooms, nil
+}
+
+func (r *RoomRepository) CreateRoom(room *data.Room) error {
+	query := `INSERT INTO rooms (hotel_id, number, capacity, price) VALUES ($1, $2, $3, $4)`
+	_, err := r.db.Exec(query, room.HotelID, room.Number, room.Capacity, room.Price)
+	return err
+}

@@ -7,8 +7,8 @@ import (
 	
 	"hotel-booking-service/internal/app/config"
 	"hotel-booking-service/internal/app/store"
-	"hotel-booking-service/internal/deliveries"
-	"hotel-booking-service/internal/deliveries/middleware"
+	"hotel-booking-service/internal/deliveries/http"
+	"hotel-booking-service/internal/deliveries/http/middleware"
 	"hotel-booking-service/internal/usecases"
 )
 

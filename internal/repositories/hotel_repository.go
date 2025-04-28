@@ -97,3 +97,9 @@ func (r *HotelRepository) GetRoomsByHotelID(hotelID int) ([]data.Room, error) {
 	
 	return rooms, nil
 }
+
+func (r *HotelRepository) CreateHotel(hotel *data.Hotel) error {
+	query := `INSERT INTO hotels (name, city) VALUES ($1, $2)`
+	_, err := r.db.Exec(query, hotel.Name, hotel.City)
+	return err
+}

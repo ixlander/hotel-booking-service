@@ -20,29 +20,32 @@ func main() {
 	downFlag := flag.Bool("down", false, "Roll back migrations")
 	versionFlag := flag.Bool("version", false, "Show current migration version")
 	forceFlag := flag.Int("force", -1, "Force migration to specific version")
-	
+
 	flag.Parse()
-	
-	cfg := config.Load()
-	
-	db, err := connections.NewPostgresDB(cfg.Database)
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	db, err := connections.NewPostgresConnection(cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
-	
+
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		log.Fatalf("Failed to create migration driver: %v", err)
 	}
-	
+
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://migrations",
 		"postgres", driver)
 	if err != nil {
 		log.Fatalf("Failed to create migrate instance: %v", err)
 	}
-	
+
 	if *upFlag {
 		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 			log.Fatalf("Failed to run migrations: %v", err)

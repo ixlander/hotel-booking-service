@@ -118,3 +118,36 @@ func (r *BookingRepository) GetUserBookings(userID int) ([]data.Booking, error) 
 	
 	return bookings, nil
 }
+
+func (r *BookingRepository) GetAllBookings() ([]data.Booking, error) {
+	query := `SELECT id, user_id, room_id, from_date, to_date, status, created_at FROM bookings`
+
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var bookings []data.Booking
+	for rows.Next() {
+		var booking data.Booking
+		if err := rows.Scan(
+			&booking.ID,
+			&booking.UserID,
+			&booking.RoomID,
+			&booking.FromDate,
+			&booking.ToDate,
+			&booking.Status,
+			&booking.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		bookings = append(bookings, booking)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return bookings, nil
+}
