@@ -1,59 +1,99 @@
-package postgres
+package repositories
 
 import (
-	"context"
 	"database/sql"
-	"errors"
-
-	"github.com/ixlander/hotel-booking-service/internal/data"
+	
+	"hotel-booking-service/internal/data"
 )
 
-type HotelRepo struct {
+type HotelRepository struct {
 	db *sql.DB
 }
 
-func NewHotelRepo(db *sql.DB) *HotelRepo {
-	return &HotelRepo{db: db}
+func NewHotelRepository(db *sql.DB) *HotelRepository {
+	return &HotelRepository{db: db}
 }
 
-func (r *HotelRepo) GetAll(ctx context.Context) ([]*data.Hotel, error) {
+func (r *HotelRepository) GetAllHotels() ([]data.Hotel, error) {
 	query := `SELECT id, name, city FROM hotels`
 	
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	
-	var hotels []*data.Hotel
+	var hotels []data.Hotel
 	for rows.Next() {
 		var hotel data.Hotel
-		if err := rows.Scan(&hotel.ID, &hotel.Name, &hotel.City); err != nil {
+		if err := rows.Scan(
+			&hotel.ID,
+			&hotel.Name,
+			&hotel.City,
+		); err != nil {
 			return nil, err
 		}
-		hotels = append(hotels, &hotel)
+		hotels = append(hotels, hotel)
 	}
 	
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 	
 	return hotels, nil
 }
 
-func (r *HotelRepo) FindByID(ctx context.Context, id int64) (*data.Hotel, error) {
+func (r *HotelRepository) GetByID(id int) (*data.Hotel, error) {
 	query := `SELECT id, name, city FROM hotels WHERE id = $1`
 	
 	var hotel data.Hotel
-	err := r.db.QueryRowContext(ctx, query, id).
-		Scan(&hotel.ID, &hotel.Name, &hotel.City)
+	err := r.db.QueryRow(query, id).Scan(
+		&hotel.ID,
+		&hotel.Name,
+		&hotel.City,
+	)
 	
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil 
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
 		return nil, err
 	}
 	
 	return &hotel, nil
+}
+
+func (r *HotelRepository) GetRoomsByHotelID(hotelID int) ([]data.Room, error) {
+	query := `
+		SELECT id, hotel_id, number, capacity, price
+		FROM rooms
+		WHERE hotel_id = $1
+	`
+	
+	rows, err := r.db.Query(query, hotelID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var rooms []data.Room
+	for rows.Next() {
+		var room data.Room
+		if err := rows.Scan(
+			&room.ID,
+			&room.HotelID,
+			&room.Number,
+			&room.Capacity,
+			&room.Price,
+		); err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, room)
+	}
+	
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	
+	return rooms, nil
 }

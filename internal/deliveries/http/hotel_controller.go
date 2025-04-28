@@ -1,14 +1,14 @@
-package http
+package deliveries
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/go-chi/chi/v5"
-
-	"github.com/ixlander/hotel-booking-service/internal/pkg/httputil"
-	"github.com/ixlander/hotel-booking-service/internal/usecases"
+	
+	"github.com/gorilla/mux"
+	
+	"hotel-booking-service/internal/usecases"
 )
 
 type HotelController struct {
@@ -21,59 +21,76 @@ func NewHotelController(hotelUsecase *usecases.HotelUsecase) *HotelController {
 	}
 }
 
-func (c *HotelController) RegisterRoutes(r chi.Router) {
-	r.Get("/hotels", c.GetAllHotels)
-	r.Get("/hotels/{id}/available", c.GetHotelWithAvailableRooms)
-}
-
 func (c *HotelController) GetAllHotels(w http.ResponseWriter, r *http.Request) {
-	hotels, err := c.hotelUsecase.GetAllHotels(r.Context())
-	if err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	httputil.WriteJSON(w, http.StatusOK, hotels)
-}
-
-func (c *HotelController) GetHotelWithAvailableRooms(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid hotel ID")
-		return
-	}
-
 	fromDateStr := r.URL.Query().Get("from_date")
 	toDateStr := r.URL.Query().Get("to_date")
-
-	if fromDateStr == "" || toDateStr == "" {
-		httputil.WriteError(w, http.StatusBadRequest, "from_date and to_date parameters are required")
-		return
+	
+	fromDate := time.Now()
+	toDate := fromDate.AddDate(0, 0, 1)
+	
+	if fromDateStr != "" {
+		parsedFromDate, err := time.Parse("2006-01-02", fromDateStr)
+		if err == nil {
+			fromDate = parsedFromDate
+		}
 	}
-
-	fromDate, err := time.Parse("2006-01-02", fromDateStr)
+	
+	if toDateStr != "" {
+		parsedToDate, err := time.Parse("2006-01-02", toDateStr)
+		if err == nil {
+			toDate = parsedToDate
+		}
+	}
+	
+	hotels, err := c.hotelUsecase.GetAllHotels(fromDate, toDate)
 	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid from_date format")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(hotels)
+}
 
-	toDate, err := time.Parse("2006-01-02", toDateStr)
+func (c *HotelController) GetHotelByID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	hotelID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid to_date format")
+		http.Error(w, "Invalid hotel ID", http.StatusBadRequest)
 		return
 	}
-
-	hotel, err := c.hotelUsecase.GetHotelWithAvailableRooms(r.Context(), id, fromDate, toDate)
+	
+	fromDateStr := r.URL.Query().Get("from_date")
+	toDateStr := r.URL.Query().Get("to_date")
+	
+	fromDate := time.Now()
+	toDate := fromDate.AddDate(0, 0, 1)
+	
+	if fromDateStr != "" {
+		parsedFromDate, err := time.Parse("2006-01-02", fromDateStr)
+		if err == nil {
+			fromDate = parsedFromDate
+		}
+	}
+	
+	if toDateStr != "" {
+		parsedToDate, err := time.Parse("2006-01-02", toDateStr)
+		if err == nil {
+			toDate = parsedToDate
+		}
+	}
+	
+	hotel, err := c.hotelUsecase.GetHotelByID(hotelID, fromDate, toDate)
 	if err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	
 	if hotel == nil {
-		httputil.WriteError(w, http.StatusNotFound, "hotel not found")
+		http.Error(w, "Hotel not found", http.StatusNotFound)
 		return
 	}
-
-	httputil.WriteJSON(w, http.StatusOK, hotel)
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(hotel)
 }

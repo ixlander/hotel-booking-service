@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -8,6 +8,24 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o main ./cmd/app
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/hotel-booking-service ./cmd/app
 
-CMD ["./main"]
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=builder /app/hotel-booking-service .
+
+ENV DB_HOST=postgres \
+    DB_PORT=5432 \
+    DB_USER=postgres \
+    DB_PASSWORD=postgres \
+    DB_NAME=hotel_booking \
+    DB_SSLMODE=disable \
+    SERVER_PORT=8080 \
+    JWT_SECRET=your_secret_key_replace_this_in_production \
+    JWT_TOKEN_EXPIRY_HOURS=24
+
+EXPOSE 8080
+
+CMD ["/app/hotel-booking-service"]

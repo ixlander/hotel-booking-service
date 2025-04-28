@@ -1,59 +1,72 @@
-package postgres
+package repositories
 
 import (
-	"context"
 	"database/sql"
-	"errors"
-
-	"github.com/ixlander/hotel-booking-service/internal/data"
+	"time"
+	
+	"hotel-booking-service/internal/data"
 )
 
-type BookingRepo struct {
+type BookingRepository struct {
 	db *sql.DB
 }
 
-func NewBookingRepo(db *sql.DB) *BookingRepo {
-	return &BookingRepo{db: db}
+func NewBookingRepository(db *sql.DB) *BookingRepository {
+	return &BookingRepository{db: db}
 }
 
-func (r *BookingRepo) Create(ctx context.Context, booking *data.Booking) error {
+func (r *BookingRepository) CreateBooking(userID, roomID int, fromDate, toDate time.Time) (*data.Booking, error) {
 	query := `
 		INSERT INTO bookings (user_id, room_id, from_date, to_date, status)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, created_at
-	`
-	
-	if booking.Status == "" {
-		booking.Status = "confirmed"
-	}
-	
-	err := r.db.QueryRowContext(
-		ctx, query, 
-		booking.UserID, booking.RoomID, booking.FromDate, booking.ToDate, booking.Status,
-	).Scan(&booking.ID, &booking.CreatedAt)
-	
-	if err != nil {
-		return err
-	}
-	
-	return nil
-}
-
-func (r *BookingRepo) FindByID(ctx context.Context, id int64) (*data.Booking, error) {
-	query := `
-		SELECT id, user_id, room_id, from_date, to_date, created_at, status
-		FROM bookings WHERE id = $1
+		VALUES ($1, $2, $3, $4, 'confirmed')
+		RETURNING id, user_id, room_id, from_date, to_date, status, created_at
 	`
 	
 	var booking data.Booking
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&booking.ID, &booking.UserID, &booking.RoomID,
-		&booking.FromDate, &booking.ToDate, &booking.CreatedAt, &booking.Status,
+	err := r.db.QueryRow(
+		query,
+		userID,
+		roomID,
+		fromDate,
+		toDate,
+	).Scan(
+		&booking.ID,
+		&booking.UserID,
+		&booking.RoomID,
+		&booking.FromDate,
+		&booking.ToDate,
+		&booking.Status,
+		&booking.CreatedAt,
 	)
 	
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil // Booking not found
+		return nil, err
+	}
+	
+	return &booking, nil
+}
+
+func (r *BookingRepository) GetBooking(id int) (*data.Booking, error) {
+	query := `
+		SELECT id, user_id, room_id, from_date, to_date, status, created_at
+		FROM bookings
+		WHERE id = $1
+	`
+	
+	var booking data.Booking
+	err := r.db.QueryRow(query, id).Scan(
+		&booking.ID,
+		&booking.UserID,
+		&booking.RoomID,
+		&booking.FromDate,
+		&booking.ToDate,
+		&booking.Status,
+		&booking.CreatedAt,
+	)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -61,44 +74,47 @@ func (r *BookingRepo) FindByID(ctx context.Context, id int64) (*data.Booking, er
 	return &booking, nil
 }
 
-func (r *BookingRepo) FindByUserID(ctx context.Context, userID int64) ([]*data.Booking, error) {
+func (r *BookingRepository) UpdateBookingStatus(id int, status string) error {
+	query := `UPDATE bookings SET status = $1 WHERE id = $2`
+	
+	_, err := r.db.Exec(query, status, id)
+	return err
+}
+
+func (r *BookingRepository) GetUserBookings(userID int) ([]data.Booking, error) {
 	query := `
-		SELECT id, user_id, room_id, from_date, to_date, created_at, status
-		FROM bookings WHERE user_id = $1
+		SELECT id, user_id, room_id, from_date, to_date, status, created_at
+		FROM bookings
+		WHERE user_id = $1
+		ORDER BY created_at DESC
 	`
 	
-	rows, err := r.db.QueryContext(ctx, query, userID)
+	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	
-	var bookings []*data.Booking
+	var bookings []data.Booking
 	for rows.Next() {
 		var booking data.Booking
 		if err := rows.Scan(
-			&booking.ID, &booking.UserID, &booking.RoomID,
-			&booking.FromDate, &booking.ToDate, &booking.CreatedAt, &booking.Status,
+			&booking.ID,
+			&booking.UserID,
+			&booking.RoomID,
+			&booking.FromDate,
+			&booking.ToDate,
+			&booking.Status,
+			&booking.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
-		bookings = append(bookings, &booking)
+		bookings = append(bookings, booking)
 	}
 	
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 	
 	return bookings, nil
-}
-
-func (r *BookingRepo) UpdateStatus(ctx context.Context, id int64, status string) error {
-	query := `UPDATE bookings SET status = $1 WHERE id = $2`
-	
-	_, err := r.db.ExecContext(ctx, query, status, id)
-	if err != nil {
-		return err
-	}
-	
-	return nil
 }

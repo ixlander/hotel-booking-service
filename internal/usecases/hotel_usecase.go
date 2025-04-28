@@ -1,63 +1,61 @@
 package usecases
 
 import (
-	"context"
 	"time"
-
-	"github.com/ixlander/hotel-booking-service/internal/data"
-	"github.com/ixlander/hotel-booking-service/internal/repositories"
+	
+	"hotel-booking-service/internal/data"
+	"hotel-booking-service/internal/repositories"
 )
 
 type HotelUsecase struct {
-	hotelRepo repositories.HotelRepository
-	roomRepo  repositories.RoomRepository
+	hotelRepo *repositories.HotelRepository
+	roomRepo  *repositories.RoomRepository
 }
 
-func NewHotelUsecase(hotelRepo repositories.HotelRepository, roomRepo repositories.RoomRepository) *HotelUsecase {
+func NewHotelUsecase(
+	hotelRepo *repositories.HotelRepository,
+	roomRepo *repositories.RoomRepository,
+) *HotelUsecase {
 	return &HotelUsecase{
 		hotelRepo: hotelRepo,
 		roomRepo:  roomRepo,
 	}
 }
 
-func (u *HotelUsecase) GetAllHotels(ctx context.Context) ([]*data.Hotel, error) {
-	hotels, err := u.hotelRepo.GetAll(ctx)
+func (uc *HotelUsecase) GetAllHotels(fromDate, toDate time.Time) ([]data.Hotel, error) {
+	hotels, err := uc.hotelRepo.GetAllHotels()
 	if err != nil {
 		return nil, err
 	}
-
-	for _, hotel := range hotels {
-		rooms, err := u.roomRepo.GetByHotelID(ctx, hotel.ID)
+	
+	for i := range hotels {
+		availableRooms, err := uc.roomRepo.GetAvailableRoomsByHotelID(hotels[i].ID, fromDate, toDate)
 		if err != nil {
 			return nil, err
 		}
-		hotel.Rooms = make([]data.Room, len(rooms))
-		for i, room := range rooms {
-			hotel.Rooms[i] = *room
-		}
+		
+		hotels[i].Rooms = availableRooms
 	}
-
+	
 	return hotels, nil
 }
 
-func (u *HotelUsecase) GetHotelWithAvailableRooms(ctx context.Context, hotelID int64, fromDate, toDate time.Time) (*data.Hotel, error) {
-	hotel, err := u.hotelRepo.FindByID(ctx, hotelID)
+func (uc *HotelUsecase) GetHotelByID(id int, fromDate, toDate time.Time) (*data.Hotel, error) {
+	hotel, err := uc.hotelRepo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
+	
 	if hotel == nil {
-		return nil, nil 
+		return nil, nil
 	}
-
-	rooms, err := u.roomRepo.GetAvailableRooms(ctx, hotelID, fromDate, toDate)
+	
+	availableRooms, err := uc.roomRepo.GetAvailableRoomsByHotelID(id, fromDate, toDate)
 	if err != nil {
 		return nil, err
 	}
-
-	hotel.Rooms = make([]data.Room, len(rooms))
-	for i, room := range rooms {
-		hotel.Rooms[i] = *room
-	}
-
+	
+	hotel.Rooms = availableRooms
+	
 	return hotel, nil
 }

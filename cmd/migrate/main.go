@@ -11,8 +11,8 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 
-	"github.com/ixlander/hotel-booking-service/internal/app/config"
-	"github.com/ixlander/hotel-booking-service/internal/app/connections"
+	"hotel-booking-service/internal/app/config"
+	"hotel-booking-service/internal/app/connections"
 )
 
 func main() {

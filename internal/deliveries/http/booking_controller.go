@@ -1,118 +1,88 @@
-package http
+package deliveries
 
 import (
-	"errors"
+	"encoding/json"
 	"net/http"
 	"strconv"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator/v10"
-
-	"github.com/ixlander/hotel-booking-service/internal/data"
-	"github.com/ixlander/hotel-booking-service/internal/deliveries/http/middleware"
-	"github.com/ixlander/hotel-booking-service/internal/pkg/httputil"
-	"github.com/ixlander/hotel-booking-service/internal/usecases"
+	
+	"github.com/gorilla/mux"
+	
+	"hotel-booking-service/internal/data"
+	"hotel-booking-service/internal/usecases"
 )
 
 type BookingController struct {
 	bookingUsecase *usecases.BookingUsecase
-	validate       *validator.Validate
 }
 
 func NewBookingController(bookingUsecase *usecases.BookingUsecase) *BookingController {
 	return &BookingController{
 		bookingUsecase: bookingUsecase,
-		validate:       validator.New(),
 	}
-}
-
-func (c *BookingController) RegisterRoutes(r chi.Router) {
-	r.Post("/bookings", c.CreateBooking)
-	r.Get("/bookings", c.GetUserBookings)
-	r.Delete("/bookings/{id}", c.CancelBooking)
 }
 
 func (c *BookingController) CreateBooking(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		httputil.WriteError(w, http.StatusUnauthorized, "unauthorized")
+	userID := r.Context().Value("userID").(int)
+	
+	var req data.CreateBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
-	var req data.BookingRequest
-
-	if err := httputil.DecodeJSON(r, &req); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	if err := c.validate.Struct(req); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	booking, err := c.bookingUsecase.CreateBooking(r.Context(), userID, req.RoomID, req.FromDate, req.ToDate)
+	
+	booking, err := c.bookingUsecase.CreateBooking(userID, req.RoomID, req.FromDate, req.ToDate)
 	if err != nil {
-		switch {
-		case errors.Is(err, usecases.ErrRoomNotAvailable):
-			httputil.WriteError(w, http.StatusConflict, err.Error())
-		case errors.Is(err, usecases.ErrInvalidDateRange):
-			httputil.WriteError(w, http.StatusBadRequest, err.Error())
-		case errors.Is(err, usecases.ErrPastBooking):
-			httputil.WriteError(w, http.StatusBadRequest, err.Error())
-		default:
-			httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+		if err.Error() == "room not available for the selected dates" {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
 		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	httputil.WriteJSON(w, http.StatusCreated, booking)
-}
-
-func (c *BookingController) GetUserBookings(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		httputil.WriteError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-
-	bookings, err := c.bookingUsecase.GetUserBookings(r.Context(), userID)
-	if err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	httputil.WriteJSON(w, http.StatusOK, bookings)
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(booking)
 }
 
 func (c *BookingController) CancelBooking(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		httputil.WriteError(w, http.StatusUnauthorized, "unauthorized")
+	userID := r.Context().Value("userID").(int)
+	
+	vars := mux.Vars(r)
+	bookingID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid booking ID", http.StatusBadRequest)
 		return
 	}
-
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	
+	err = c.bookingUsecase.CancelBooking(userID, bookingID)
 	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "invalid booking ID")
-		return
-	}
-
-	err = c.bookingUsecase.CancelBooking(r.Context(), userID, id)
-	if err != nil {
-		switch {
-		case errors.Is(err, usecases.ErrBookingNotFound):
-			httputil.WriteError(w, http.StatusNotFound, err.Error())
-		case errors.Is(err, usecases.ErrBookingNotBelongsUser):
-			httputil.WriteError(w, http.StatusForbidden, err.Error())
-		default:
-			httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+		if err.Error() == "booking not found" {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
 		}
+		if err.Error() == "booking does not belong to this user" {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"message": "Booking cancelled successfully",
-	})
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Booking cancelled successfully"})
+}
+
+
+func (c *BookingController) GetUserBookings(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(int)
+	
+	bookings, err := c.bookingUsecase.GetUserBookings(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(bookings)
 }
