@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"database/sql"
-	
+	"fmt"
 	"hotel-booking-service/internal/data"
 )
 
@@ -98,8 +98,25 @@ func (r *HotelRepository) GetRoomsByHotelID(hotelID int) ([]data.Room, error) {
 	return rooms, nil
 }
 
-func (r *HotelRepository) CreateHotel(hotel *data.Hotel) error {
-	query := `INSERT INTO hotels (name, city) VALUES ($1, $2)`
-	_, err := r.db.Exec(query, hotel.Name, hotel.City)
+func (r *HotelRepository) CreateHotel(hotel data.Hotel) (*data.Hotel, error) {
+	query := `INSERT INTO hotels (name, city) VALUES ($1, $2) RETURNING id`
+	err := r.db.QueryRow(query, hotel.Name, hotel.City).Scan(&hotel.ID)
+	if err != nil {
+		return nil, fmt.Errorf("could not insert hotel: %v", err)
+	}
+	return &hotel, nil
+}
+
+func (r *HotelRepository) UpdateHotel(hotel data.Hotel) (*data.Hotel, error) {
+	query := `UPDATE hotels SET name=$1, city=$2 WHERE id=$3`
+	_, err := r.db.Exec(query, hotel.Name, hotel.City, hotel.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &hotel, nil
+}
+
+func (r *HotelRepository) DeleteHotel(id int) error {
+	_, err := r.db.Exec(`DELETE FROM hotels WHERE id = $1`, id)
 	return err
 }

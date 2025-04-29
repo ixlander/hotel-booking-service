@@ -2,9 +2,12 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+RUN apk add --no-cache git
 
+COPY go.mod go.sum ./
 RUN go mod download
+
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 COPY . .
 
@@ -15,6 +18,10 @@ FROM alpine:latest
 WORKDIR /app
 
 COPY --from=builder /app/hotel-booking-service .
+COPY --from=builder /go/bin/migrate /usr/bin/migrate
+
+COPY .env .env
+COPY --from=builder /app/migrations /app/migrations
 
 ENV DB_HOST=postgres \
     DB_PORT=5432 \

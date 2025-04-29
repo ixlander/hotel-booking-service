@@ -1,9 +1,9 @@
 package repositories
 
 import (
-	"database/sql"
 	"time"
-	
+
+	"database/sql"
 	"hotel-booking-service/internal/data"
 )
 
@@ -103,7 +103,6 @@ func (r *RoomRepository) GetAvailableRoomsByHotelID(hotelID int, fromDate, toDat
 	return rooms, nil
 }
 
-// В репозитории RoomRepository
 func (r *RoomRepository) GetAllRooms() ([]data.Room, error) {
 	query := `SELECT id, hotel_id, number, capacity, price FROM rooms`
 	rows, err := r.db.Query(query)
@@ -127,8 +126,33 @@ func (r *RoomRepository) GetAllRooms() ([]data.Room, error) {
 	return rooms, nil
 }
 
-func (r *RoomRepository) CreateRoom(room *data.Room) error {
-	query := `INSERT INTO rooms (hotel_id, number, capacity, price) VALUES ($1, $2, $3, $4)`
-	_, err := r.db.Exec(query, room.HotelID, room.Number, room.Capacity, room.Price)
-	return err
+func (r *RoomRepository) CreateRoom(room *data.Room) (*data.Room, error) {
+	query := `INSERT INTO rooms (hotel_id, number, capacity, price) 
+	          VALUES ($1, $2, $3, $4) 
+	          RETURNING id`
+	
+	err := r.db.QueryRow(query, room.HotelID, room.Number, room.Capacity, room.Price).Scan(&room.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return room, nil
+}
+
+func (r *RoomRepository) UpdateRoom(room *data.Room) (*data.Room, error) {
+	query := `UPDATE rooms SET hotel_id = $1, number = $2, capacity = $3, price = $4 WHERE id = $5`
+	_, err := r.db.Exec(query, room.HotelID, room.Number, room.Capacity, room.Price, room.ID)
+	if err != nil {
+		return nil, err
+	}
+	return room, nil
+}
+
+func (r *RoomRepository) DeleteRoom(roomID int) error {
+	query := `DELETE FROM rooms WHERE id = $1`
+	_, err := r.db.Exec(query, roomID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -106,3 +106,15 @@ func (r *UserRepository) GetAllUsers() ([]data.User, error) {
 	}
 	return users, nil
 }
+
+func (r *UserRepository) Update(user *data.User) error {
+	query := `UPDATE users SET name = $1, email = $2, password = $3 WHERE id = $4`
+	_, err := r.db.Exec(query, user.Name, user.Email, user.Password, user.ID)
+	return err
+}
+
+func (r *UserRepository) Delete(id int) error {
+	query := `DELETE FROM users WHERE id = $1`
+	_, err := r.db.Exec(query, id)
+	return err
+}

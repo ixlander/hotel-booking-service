@@ -3,6 +3,7 @@ module hotel-booking-service
 go 1.23.4
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang-migrate/migrate/v4 v4.18.3

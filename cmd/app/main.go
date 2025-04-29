@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	
+	_ "github.com/lib/pq"
 	"hotel-booking-service/internal/app/config"
 	"hotel-booking-service/internal/app/connections"
 	"hotel-booking-service/internal/app/start"

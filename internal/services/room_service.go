@@ -36,8 +36,12 @@ func (s *RoomService) GetRoomByID(id int) (*data.Room, error) {
 	return room, nil
 }
 
-func (s *RoomService) CreateRoom(room *data.Room) error {
-	return s.roomRepo.CreateRoom(room)
+func (s *RoomService) CreateRoom(room *data.Room) (*data.Room, error) {
+	createdRoom, err := s.roomRepo.CreateRoom(room)
+	if err != nil {
+		return nil, err
+	}
+	return createdRoom, nil
 }
 
 func (s *RoomService) GetAvailableRoomsByHotelID(hotelID int, fromDate, toDate time.Time) ([]*data.Room, error) {

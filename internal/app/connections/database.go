@@ -27,7 +27,6 @@ func NewPostgresConnection(config PostgresConfig) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 	
-	// Check the connection
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}

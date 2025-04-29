@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	
 	"github.com/gorilla/mux"
-	
 	"hotel-booking-service/internal/data"
 	"hotel-booking-service/internal/usecases"
 )
@@ -73,6 +71,52 @@ func (c *BookingController) CancelBooking(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(map[string]string{"message": "Booking cancelled successfully"})
 }
 
+func (c *BookingController) GetBookingByID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	bookingID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid booking ID", http.StatusBadRequest)
+		return
+	}
+
+	booking, err := c.bookingUsecase.GetBookingByID(bookingID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	if booking == nil {
+		http.Error(w, "Booking not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(booking)
+}
+
+func (c *BookingController) UpdateBooking(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	bookingID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid booking ID", http.StatusBadRequest)
+		return
+	}
+
+	var req data.UpdateBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err = c.bookingUsecase.UpdateBooking(bookingID, req.Status)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Booking updated successfully"})
+}
 
 func (c *BookingController) GetUserBookings(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("userID").(int)

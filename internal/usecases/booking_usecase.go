@@ -82,3 +82,11 @@ func (uc *BookingUsecase) CancelBooking(userID, bookingID int) error {
 func (uc *BookingUsecase) GetUserBookings(userID int) ([]data.Booking, error) {
 	return uc.bookingRepo.GetUserBookings(userID)
 }
+
+func (uc *BookingUsecase) GetBookingByID(bookingID int) (*data.Booking, error) {
+	return uc.bookingRepo.GetBooking(bookingID)
+}
+
+func (uc *BookingUsecase) UpdateBooking(bookingID int, status string) error {
+	return uc.bookingRepo.UpdateBookingStatus(bookingID, status)
+}

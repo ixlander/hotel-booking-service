@@ -6,7 +6,6 @@ import (
 	"time"
 	
 	"github.com/joho/godotenv"
-	
 	"hotel-booking-service/internal/app/connections"
 )
 

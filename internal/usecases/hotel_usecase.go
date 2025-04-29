@@ -59,3 +59,35 @@ func (uc *HotelUsecase) GetHotelByID(id int, fromDate, toDate time.Time) (*data.
 	
 	return hotel, nil
 }
+
+func (uc *HotelUsecase) GetRoomsByHotelID(hotelID int, fromDate, toDate time.Time) ([]data.Room, error) {
+	rooms, err := uc.roomRepo.GetAvailableRoomsByHotelID(hotelID, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	return rooms, nil
+}
+
+func (uc *HotelUsecase) CreateHotel(hotel data.Hotel) (*data.Hotel, error) {
+	return uc.hotelRepo.CreateHotel(hotel)
+}
+
+func (uc *HotelUsecase) UpdateHotel(hotel data.Hotel) (*data.Hotel, error) {
+	return uc.hotelRepo.UpdateHotel(hotel)
+}
+
+func (uc *HotelUsecase) DeleteHotel(hotelID int) error {
+	return uc.hotelRepo.DeleteHotel(hotelID)
+}
+
+func (uc *HotelUsecase) CreateRoom(room data.Room) (*data.Room, error) {
+	return uc.roomRepo.CreateRoom(&room)
+}
+
+func (uc *HotelUsecase) UpdateRoom(room data.Room) (*data.Room, error) {
+	return uc.roomRepo.UpdateRoom(&room)
+}
+
+func (uc *HotelUsecase) DeleteRoom(roomID int) error {
+	return uc.roomRepo.DeleteRoom(roomID)
+}

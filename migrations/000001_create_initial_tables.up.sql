@@ -2,7 +2,8 @@ CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    role VARCHAR(50) DEFAULT 'user'
 );
 
 CREATE TABLE hotels (
@@ -28,3 +29,5 @@ CREATE TABLE bookings (
     status VARCHAR(50) DEFAULT 'confirmed' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_bookings_dates ON bookings (from_date, to_date);

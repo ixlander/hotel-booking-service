@@ -26,4 +26,16 @@ clean:
 build-all:
 	go build ./...
 
-.PHONY: build run migrate fmt lint deps clean build-all
+docker-migrate-up:
+	docker-compose run --rm app migrate -path=/app/migrations -database="postgres://postgres:postgres@postgres:5432/hotel_booking?sslmode=disable" up
+
+docker-migrate-down:
+	docker-compose run --rm app migrate -path=/app/migrations -database="postgres://postgres:postgres@postgres:5432/hotel_booking?sslmode=disable" down
+
+up:
+	docker-compose up --build
+
+down:
+	docker-compose down --volumes --remove-orphans
+
+.PHONY: build run migrate fmt lint deps clean build-all docker-migrate-up docker-migrate-down up down
