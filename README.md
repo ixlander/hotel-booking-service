@@ -1,3 +1,4 @@
+
 # Hotel Booking Service
 
 A RESTful API service for hotel room booking built with Go, following clean architecture principles.
