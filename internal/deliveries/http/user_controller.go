@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"errors"      // Добавлен импорт
-	"strings"      // Добавлен импорт
-	"hotel-booking-service/internal/data"  // Добавлен импорт для работы с типом User
+	"errors"   
+	"strings"      
+	"hotel-booking-service/internal/data"  
 	"github.com/gorilla/mux"
 	"hotel-booking-service/internal/usecases"
 	"github.com/dgrijalva/jwt-go"

@@ -24,23 +24,26 @@ func (c *BookingController) CreateBooking(w http.ResponseWriter, r *http.Request
 	
 	var req data.CreateBookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	
 	booking, err := c.bookingUsecase.CreateBooking(userID, req.RoomID, req.FromDate, req.ToDate)
 	if err != nil {
 		if err.Error() == "room not available for the selected dates" {
-			http.Error(w, err.Error(), http.StatusConflict)
+			sendErrorResponse(w, err.Error(), http.StatusConflict)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		sendErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(booking)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Booking created successfully",
+		"booking_id": booking.ID,
+	})
 }
 
 func (c *BookingController) CancelBooking(w http.ResponseWriter, r *http.Request) {
@@ -49,21 +52,20 @@ func (c *BookingController) CancelBooking(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, "Invalid booking ID", http.StatusBadRequest)
+		sendErrorResponse(w, "Invalid booking ID", http.StatusBadRequest)
 		return
 	}
 	
 	err = c.bookingUsecase.CancelBooking(userID, bookingID)
 	if err != nil {
-		if err.Error() == "booking not found" {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
+		switch err.Error() {
+		case "booking not found":
+			sendErrorResponse(w, err.Error(), http.StatusNotFound)
+		case "booking does not belong to this user":
+			sendErrorResponse(w, err.Error(), http.StatusForbidden)
+		default:
+			sendErrorResponse(w, err.Error(), http.StatusBadRequest)
 		}
-		if err.Error() == "booking does not belong to this user" {
-			http.Error(w, err.Error(), http.StatusForbidden)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -75,18 +77,18 @@ func (c *BookingController) GetBookingByID(w http.ResponseWriter, r *http.Reques
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, "Invalid booking ID", http.StatusBadRequest)
+		sendErrorResponse(w, "Invalid booking ID", http.StatusBadRequest)
 		return
 	}
 
 	booking, err := c.bookingUsecase.GetBookingByID(bookingID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		sendErrorResponse(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	if booking == nil {
-		http.Error(w, "Booking not found", http.StatusNotFound)
+		sendErrorResponse(w, "Booking not found", http.StatusNotFound)
 		return
 	}
 
@@ -98,19 +100,19 @@ func (c *BookingController) UpdateBooking(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, "Invalid booking ID", http.StatusBadRequest)
+		sendErrorResponse(w, "Invalid booking ID", http.StatusBadRequest)
 		return
 	}
 
 	var req data.UpdateBookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	err = c.bookingUsecase.UpdateBooking(bookingID, req.Status)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		sendErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -123,10 +125,17 @@ func (c *BookingController) GetUserBookings(w http.ResponseWriter, r *http.Reque
 	
 	bookings, err := c.bookingUsecase.GetUserBookings(userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		sendErrorResponse(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(bookings)
+}
+
+func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	response := map[string]string{"message": message}
+	json.NewEncoder(w).Encode(response)
 }
