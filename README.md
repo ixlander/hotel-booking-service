@@ -90,57 +90,7 @@ A RESTful API service for hotel room booking built with Go, following clean arch
 └── go.sum                 # Go dependencies checksum
 ```
 
-## Prerequisites
-
-- Go 1.18 or higher
-- PostgreSQL
-- Docker & Docker Compose (optional, for containerized setup)
-
-## Running Locally
-
-### Option 1: Without Docker
-
-1. Install Go:
-   ```
-   https://golang.org/doc/install
-   ```
-
-2. Install PostgreSQL and create a database:
-   ```
-   createdb hotel_booking
-   ```
-
-3. Clone the repository:
-   ```
-   git clone <repository-url>
-   cd hotel-booking-service
-   ```
-
-4. Configure the environment variables:
-   ```
-   cp .env.example .env
-   # Edit .env with your database credentials
-   ```
-
-5. Initialize the database:
-   ```
-   psql -U postgres -d hotel_booking -f init.sql
-   ```
-
-6. Install dependencies:
-   ```
-   go mod download
-   ```
-
-7. Build and run the application:
-   ```
-   go build -o hotel-booking-service ./cmd/app
-   ./hotel-booking-service
-   ```
-
-8. The API will be available at `http://localhost:8080`
-
-### Option 2: With Docker Compose
+## Running Locally With Docker Compose
 
 1. Install Docker and Docker Compose:
    ```
@@ -150,7 +100,7 @@ A RESTful API service for hotel room booking built with Go, following clean arch
 
 2. Clone the repository:
    ```
-   git clone <repository-url>
+   git clone https://github.com/ixlander/hotel-booking-service.git
    cd hotel-booking-service
    ```
 
