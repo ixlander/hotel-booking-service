@@ -15,14 +15,14 @@ A RESTful API service for hotel room booking built with Go, following clean arch
 /hotel-booking-service
 │
 ├── cmd/
-│   ├── app/               # Application entry point
-│   │   └── main.go        # Main application logic
-│   └── migrate/           # Migration utility
-│       └── main.go        # Migration logic
+│   ├── app/
+│   │   └── main.go
+│   └── migrate/
+│       └── main.go
 │
 ├── docs/
-│   ├── erd_diagram_hotel.png  # ERD diagram for hotel booking system
-│   └── umls/                # UML sequence diagrams
+│   ├── erd_diagram_hotel.png
+│   └── umls/
 │       ├── booking_cancel.puml
 │       ├── check_available_hotels_and_rooms.puml
 │       ├── create_booking.puml
@@ -30,64 +30,64 @@ A RESTful API service for hotel room booking built with Go, following clean arch
 │
 ├── internal/
 │   ├── app/
-│   │   ├── config/        # Configuration (.env, etc.)
-│   │   │   └── config.go  # Configuration loading
-│   │   ├── connections/   # External connections (DB, APIs)
-│   │   │   └── database.go # Database connection logic
-│   │   ├── start/         # Startup helpers (routes, etc.)
-│   │   │   └── routes.go  # Route initialization
-│   │   └── store/         # Repository store
-│   │       └── store.go   # Store handling
-│   ├── data/              # Data layer (models)
-│   │   ├── booking.go     # Booking data model
-│   │   └── models.go      # General data models (hotel, user, etc.)
-│   ├── deliveries/        # Delivery layer (HTTP handlers)
-│   │   ├── http/          # HTTP delivery methods (controllers)
-│   │   │   ├── auth_controller.go  # Auth-related handlers
-│   │   │   ├── booking_controller.go  # Booking-related handlers
-│   │   │   ├── hotel_controller.go  # Hotel-related handlers
-│   │   │   └── user_controller.go   # User-related handlers
-│   │   └── middleware/    # HTTP middleware (auth, logger)
-│   │       ├── auth_middleware.go  # Auth validation middleware
-│   │       └── logger.go  # Request logging middleware
-│   ├── pkg/               # Internal libraries (utilities)
-│   │   ├── apperror/      # Custom error handling
-│   │   │   └── errors.go  # Error types and handling
-│   │   ├── httputil/      # HTTP utilities
-│   │   │   └── response.go # HTTP response formatting
-│   │   ├── jwtutil/       # JWT utilities (signing and parsing)
-│   │   │   └── jwt.go     # JWT token utility functions
-│   │   └── logger/        # Logging utilities
-│   │       └── logger.go  # Logger setup
-│   ├── repositories/      # Repository layer (data access)
-│   │   ├── booking_repository.go  # Booking repository
-│   │   ├── hotel_repository.go    # Hotel repository
-│   │   ├── room_repository.go     # Room repository
-│   │   ├── user_repository.go     # User repository
-│   │   └── postgres/        # Postgres repository
-│   │       └── postgres.go  # Postgres connection and queries
-│   ├── services/          # Service controllers
-│   │   ├── booking_service.go  # Booking service logic
-│   │   ├── hotel_service.go    # Hotel service logic
-│   │   ├── room_service.go     # Room service logic
-│   │   └── user_service.go     # User service logic
-│   └── usecases/          # Business logic
-│       ├── auth_usecase.go     # Auth use case logic
-│       ├── booking_usecase.go  # Booking use case logic
-│       ├── hotel_usecase.go    # Hotel use case logic
-│       └── user_usecase.go     # User use case logic
+│   │   ├── config/
+│   │   │   └── config.go
+│   │   ├── connections/
+│   │   │   └── database.go
+│   │   ├── start/
+│   │   │   └── routes.go
+│   │   └── store/
+│   │       └── store.go
+│   ├── data/
+│   │   ├── booking.go
+│   │   └── models.go
+│   ├── deliveries/
+│   │   ├── http/
+│   │   │   ├── auth_controller.go
+│   │   │   ├── booking_controller.go
+│   │   │   ├── hotel_controller.go
+│   │   │   └── user_controller.go
+│   │   └── middleware/
+│   │       ├── auth_middleware.go
+│   │       └── logger.go
+│   ├── pkg/
+│   │   ├── apperror/
+│   │   │   └── errors.go
+│   │   ├── httputil/
+│   │   │   └── response.go
+│   │   ├── jwtutil/
+│   │   │   └── jwt.go
+│   │   └── logger/
+│   │       └── logger.go
+│   ├── repositories/
+│   │   ├── booking_repository.go
+│   │   ├── hotel_repository.go
+│   │   ├── room_repository.go
+│   │   ├── user_repository.go
+│   │   └── postgres/
+│   │       └── postgres.go
+│   ├── services/
+│   │   ├── booking_service.go
+│   │   ├── hotel_service.go
+│   │   ├── room_service.go
+│   │   └── user_service.go
+│   └── usecases/
+│       ├── auth_usecase.go
+│       ├── booking_usecase.go
+│       ├── hotel_usecase.go
+│       └── user_usecase.go
 │
-├── migrations/            # Database migrations
-│   ├── 000001_create_initial_tables.up.sql   # Initial table creation
-│   ├── 000001_create_initial_tables.down.sql # Rollback for initial tables
-│   ├── 000002_seed_data.up.sql    # Data seeding (up)
-│   └── 000002_seed_data.down.sql  # Data seeding (down)
+├── migrations/
+│   ├── 000001_create_initial_tables.up.sql
+│   ├── 000001_create_initial_tables.down.sql
+│   ├── 000002_seed_data.up.sql
+│   └── 000002_seed_data.down.sql
 │
-├── .env                   # Environment variables
-├── docker-compose.yml     # Docker Compose configuration
-├── Dockerfile             # Docker build file
-├── go.mod                 # Go module file
-└── go.sum                 # Go dependencies checksum
+├── .env
+├── docker-compose.yml
+├── Dockerfile
+├── go.mod
+└── go.sum
 ```
 
 ## Running Locally With Docker Compose
