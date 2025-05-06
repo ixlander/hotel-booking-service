@@ -5,35 +5,43 @@ import (
 	"net/http"
 )
 
-type Response struct {
-	Success bool        `json:"success"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
+type ErrorResponse struct {
+	Message string `json:"message"`
+	Status  int    `json:"status,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
-func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
-	response := Response{
-		Success: status >= 200 && status < 300,
+type SuccessResponse struct {
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+func SendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	
+	response := ErrorResponse{
+		Message: message,
+		Status:  statusCode,
+	}
+	
+	json.NewEncoder(w).Encode(response)
+}
+
+func SendSuccessResponse(w http.ResponseWriter, data interface{}, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	
+	response := SuccessResponse{
+		Message: message,
 		Data:    data,
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+	
 	json.NewEncoder(w).Encode(response)
 }
 
-func WriteError(w http.ResponseWriter, status int, message string) {
-	response := Response{
-		Success: false,
-		Error:   message,
-	}
-
+func SendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(response)
-}
-
-func DecodeJSON(r *http.Request, v interface{}) error {
-	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(v)
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(data)
 }

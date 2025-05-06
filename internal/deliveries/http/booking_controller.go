@@ -2,12 +2,18 @@ package deliveries
 
 import (
 	"encoding/json"
-	"net/http"
-	"strconv"
-	"github.com/gorilla/mux"
+	"fmt"
 	"hotel-booking-service/internal/data"
 	"hotel-booking-service/internal/usecases"
+	"log"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/gorilla/mux"
 )
+
+const userIDContextKey = "userID"
 
 type BookingController struct {
 	bookingUsecase *usecases.BookingUsecase
@@ -20,24 +26,53 @@ func NewBookingController(bookingUsecase *usecases.BookingUsecase) *BookingContr
 }
 
 func (c *BookingController) CreateBooking(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int)
-	
-	var req data.CreateBookingRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in CreateBooking: %v", r)
+			sendErrorResponse(w, "Internal server error", http.StatusInternalServerError)
+		}
+	}()
+
+	userIDValue := r.Context().Value(userIDContextKey)
+
+	if userIDValue == nil {
+		log.Printf("userID not found in context")
+		sendErrorResponse(w, "User ID not found in context", http.StatusUnauthorized)
 		return
 	}
-	
+
+	userID, ok := userIDValue.(int)
+	if !ok {
+		log.Printf("userID is not an int: %T", userIDValue)
+		sendErrorResponse(w, "Invalid user ID format", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Processing booking creation for user ID: %d", userID)
+
+	var req data.CreateBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Error decoding request body: %v", err)
+		sendErrorResponse(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Booking request: Room ID: %d, From: %s, To: %s", 
+		req.RoomID, req.FromDate.Format(time.RFC3339), req.ToDate.Format(time.RFC3339))
+
 	booking, err := c.bookingUsecase.CreateBooking(userID, req.RoomID, req.FromDate, req.ToDate)
 	if err != nil {
+		log.Printf("Error creating booking: %v", err)
 		if err.Error() == "room not available for the selected dates" {
 			sendErrorResponse(w, err.Error(), http.StatusConflict)
 			return
 		}
-		sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+		sendErrorResponse(w, fmt.Sprintf("Booking creation failed: %v", err), http.StatusBadRequest)
 		return
 	}
-	
+
+	log.Printf("Successfully created booking with ID: %d", booking.ID)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -47,7 +82,24 @@ func (c *BookingController) CreateBooking(w http.ResponseWriter, r *http.Request
 }
 
 func (c *BookingController) CancelBooking(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in CancelBooking: %v", r)
+			sendErrorResponse(w, "Internal server error", http.StatusInternalServerError)
+		}
+	}()
+
+	userIDValue := r.Context().Value(userIDContextKey)
+	if userIDValue == nil {
+		sendErrorResponse(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+	
+	userID, ok := userIDValue.(int)
+	if !ok {
+		sendErrorResponse(w, "Invalid user ID format", http.StatusInternalServerError)
+		return
+	}
 	
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
@@ -74,6 +126,13 @@ func (c *BookingController) CancelBooking(w http.ResponseWriter, r *http.Request
 }
 
 func (c *BookingController) GetBookingByID(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in GetBookingByID: %v", r)
+			sendErrorResponse(w, "Internal server error", http.StatusInternalServerError)
+		}
+	}()
+
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -97,6 +156,13 @@ func (c *BookingController) GetBookingByID(w http.ResponseWriter, r *http.Reques
 }
 
 func (c *BookingController) UpdateBooking(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in UpdateBooking: %v", r)
+			sendErrorResponse(w, "Internal server error", http.StatusInternalServerError)
+		}
+	}()
+
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -121,7 +187,24 @@ func (c *BookingController) UpdateBooking(w http.ResponseWriter, r *http.Request
 }
 
 func (c *BookingController) GetUserBookings(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in GetUserBookings: %v", r)
+			sendErrorResponse(w, "Internal server error", http.StatusInternalServerError)
+		}
+	}()
+
+	userIDValue := r.Context().Value(userIDContextKey)
+	if userIDValue == nil {
+		sendErrorResponse(w, "User ID not found in context", http.StatusUnauthorized)
+		return
+	}
+	
+	userID, ok := userIDValue.(int)
+	if !ok {
+		sendErrorResponse(w, "Invalid user ID format", http.StatusInternalServerError)
+		return
+	}
 	
 	bookings, err := c.bookingUsecase.GetUserBookings(userID)
 	if err != nil {

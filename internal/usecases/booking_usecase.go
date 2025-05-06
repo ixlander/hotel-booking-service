@@ -24,6 +24,7 @@ func NewBookingUsecase(
 }
 
 func (uc *BookingUsecase) CreateBooking(userID, roomID int, fromDate, toDate time.Time) (*data.Booking, error) {
+	
 	if fromDate.After(toDate) {
 		return nil, errors.New("from date must be before to date")
 	}

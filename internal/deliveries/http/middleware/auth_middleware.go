@@ -13,9 +13,7 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-type contextKey string
-
-const userIDKey contextKey = "userID"
+const userIDContextKey = "userID"
 
 func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -52,7 +50,7 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 					return
 				}
 
-				ctx := context.WithValue(r.Context(), userIDKey, int(userID))
+				ctx := context.WithValue(r.Context(), userIDContextKey, int(userID))  
 
 				next.ServeHTTP(w, r.WithContext(ctx))
 			} else {
